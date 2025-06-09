@@ -2,6 +2,9 @@
 
 from pathlib import Path
 import os
+import dj_database_url # <--- ADDED: For PostgreSQL database URL parsing
+import sys # <--- ADDED: To check if running tests
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,12 +14,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@u1#p5h=p543n(6=v7k$v@g83315a%r48$j275d)w+3j55w!9p'
+# Use environment variable for SECRET_KEY in production
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-@u1#p5h=p543n(6=v7k$v@g83315a%r48$j275d)w+3j55w!9p')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Set DEBUG to False in production. Render automatically sets this to False for production deploys.
+# You can override it locally using an env var if needed.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS for Render.com: your Render app's domain and any custom domains
+ALLOWED_HOSTS = ['trips-tours-management.onrender.com', 'localhost', '127.0.0.1']
+# Add other domains if you set up custom domains on Render
+# You can also use ['.onrender.com'] for wildcards, but listing specific domains is safer.
 
 
 # Application definition
@@ -28,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'whitenoise.runserver_nostatic', # <--- ADDED: For WhiteNoise in development (optional, but good practice)
+
     # Our custom apps
     'customers',
     'trips',
@@ -35,12 +47,13 @@ INSTALLED_APPS = [
     'payments',
     'reports',
     'core',
-    'expenses', # <--- ADDED
+    'expenses',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # <--- ADDED: For serving static files in production
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -53,10 +66,7 @@ ROOT_URLCONF = 'TripsToursManagement.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Corrected DIRS: Ensure it points to the top-level 'templates' folder.
-        # BASE_DIR is the project root (TripsToursManagement).
-        # So, BASE_DIR / 'templates' correctly points to TripsToursManagement/templates/
-        'DIRS': [BASE_DIR / 'templates'], # <--- CONFIRMED THIS IS CORRECT
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -75,6 +85,7 @@ WSGI_APPLICATION = 'TripsToursManagement.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# Use PostgreSQL in production, SQLite for local development (or PostgreSQL locally)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -82,6 +93,13 @@ DATABASES = {
     }
 }
 
+# Render automatically sets DATABASE_URL for PostgreSQL
+# This parses the DATABASE_URL and uses it if available
+if 'DATABASE_URL' in os.environ:
+    DATABASES['default'] = dj_database_url.config(
+        default=os.environ['DATABASE_URL'],
+        conn_max_age=600 # Optional: connection life in seconds
+    )
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -122,7 +140,14 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # For production deployment
+# For production deployment, static files will be collected into this directory
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise settings for static files
+# Only enable in production. Render automatically sets DJANGO_DEBUG to False for production.
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # Media files (user-uploaded files like customer attachments)
 MEDIA_URL = '/media/'
@@ -138,3 +163,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
+
+# For testing database to ensure it's not the production one
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }

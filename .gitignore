@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+venv/
+venv_deploy/ # <--- ADDED: To ignore the temporary deploy venv
+.env # <--- ADDED: If you use .env for local environment variables
+db.sqlite3 # <--- ADDED: Your SQLite database file (as you're switching to Postgres)
+/media/ # <--- ADDED: User-uploaded media files (won't persist on free tier)
+/staticfiles/ # <--- ADDED: Collected static files
