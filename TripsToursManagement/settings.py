@@ -2,31 +2,30 @@
 
 from pathlib import Path
 import os
-import dj_database_url # <--- ADDED: For PostgreSQL database URL parsing
-import sys # <--- ADDED: To check if running tests
-
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# Use environment variable for SECRET_KEY in production
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-@u1#p5h=p543n(6=v7k$v@g83315a%r48$j275d)w+3j55w!9p')
-
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Set DEBUG to False in production. Render automatically sets this to False for production deploys.
-# You can override it locally using an env var if needed.
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+### CHANGE 1: A more standard way to handle DEBUG. It will be True only if you
+### set an environment variable named DEBUG to 'True', otherwise it's safely False.
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# ALLOWED_HOSTS for Render.com: your Render app's domain and any custom domains
-ALLOWED_HOSTS = ['trips-tours-management.onrender.com', 'localhost', '127.0.0.1']
-# Add other domains if you set up custom domains on Render
-# You can also use ['.onrender.com'] for wildcards, but listing specific domains is safer.
+
+### CHANGE 2: This is the most important fix for the 400 Bad Request error.
+### This automatically gets your live URL from Render and adds it.
+### You no longer need to set ALLOWED_HOSTS in the Render dashboard.
+ALLOWED_HOSTS = []
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -38,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'whitenoise.runserver_nostatic', # <--- ADDED: For WhiteNoise in development (optional, but good practice)
+    'whitenoise.runserver_nostatic',
 
     # Our custom apps
     'customers',
@@ -52,8 +51,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise middleware should be placed right after the security middleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # <--- ADDED: For serving static files in production
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -85,50 +85,33 @@ WSGI_APPLICATION = 'TripsToursManagement.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-# Use PostgreSQL in production, SQLite for local development (or PostgreSQL locally)
+### CHANGE 3: A simpler and more robust database configuration.
+### It uses the DATABASE_URL from Render automatically.
+### For local development, it falls back to the SQLite database.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600
+    )
 }
 
-# Render automatically sets DATABASE_URL for PostgreSQL
-# This parses the DATABASE_URL and uses it if available
-if 'DATABASE_URL' in os.environ:
-    DATABASES['default'] = dj_database_url.config(
-        default=os.environ['DATABASE_URL'],
-        conn_max_age=600 # Optional: connection life in seconds
-    )
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -136,37 +119,24 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/topics/static-files/
 
 STATIC_URL = 'static/'
-# This tells Django where to look for static files collected from your apps
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
-# For production deployment, static files will be collected into this directory
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# WhiteNoise settings for static files
-# Only enable in production. Render automatically sets DJANGO_DEBUG to False for production.
-if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+### CHANGE 4: Simplified static files storage.
+### We removed the 'if not DEBUG' because this setting is safe for local use
+### and required for production. This is simpler and less error-prone.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # Media files (user-uploaded files like customer attachments)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- AUTHENTICATION SETTINGS ---
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
-
-# For testing database to ensure it's not the production one
-if 'test' in sys.argv:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',
-    }
