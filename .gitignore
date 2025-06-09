@@ -9,3 +9,4 @@ venv_deploy/ # <--- ADDED: To ignore the temporary deploy venv
 db.sqlite3 # <--- ADDED: Your SQLite database file (as you're switching to Postgres)
 /media/ # <--- ADDED: User-uploaded media files (won't persist on free tier)
 /staticfiles/ # <--- ADDED: Collected static files
+token.txt
