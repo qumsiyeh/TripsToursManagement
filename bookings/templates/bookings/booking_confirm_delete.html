@@ -1,0 +1,23 @@
+<!-- bookings/templates/bookings/booking_confirm_delete.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Confirm Delete Booking{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Confirm Deletion of Booking</h1>
+
+    <div class="alert alert-danger confirmation-box" role="alert">
+        <h4 class="alert-heading">Are you sure?</h4>
+        <p>You are about to delete the booking for <strong>{{ booking.customer.full_name }}</strong> on trip <strong>{{ booking.trip.name }}</strong> (Booking ID: {{ booking.pk }}).</p>
+        <p class="mb-0">This action will permanently delete this booking, all associated selected add-ons, and all recorded payments for this booking. The available seats on the trip will also be adjusted. This action cannot be undone.</p>
+    </div>
+
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        <div class="d-flex justify-content-start">
+            <button type="submit" class="btn btn-danger me-2">Yes, Delete Booking</button>
+            <a href="{% url 'booking_detail' booking.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock content %}

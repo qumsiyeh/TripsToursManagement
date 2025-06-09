@@ -1,0 +1,217 @@
+<!-- bookings/templates/bookings/booking_form.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}
+    {{ title }} - Trips & Tours Management
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">{{ title }}</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Please correct the following errors:</strong>
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% if field.errors %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label for="{{ form.customer.id_for_label }}" class="form-label">{{ form.customer.label }}</label>
+            {% if pre_filled_customer %} {# If customer is pre-filled, display as read-only #}
+                <p class="form-control-plaintext">{{ pre_filled_customer.full_name }}</p>
+                <input type="hidden" name="{{ form.customer.name }}" value="{{ pre_filled_customer.pk }}">
+            {% else %}
+                {{ form.customer|add_class:"form-select" }}
+                {% if form.customer.help_text %}<div class="form-text">{{ form.customer.help_text }}</div>{% endif %}
+                {% if form.customer.errors %}<div class="invalid-feedback d-block">{% for error in form.customer.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="{{ form.trip.id_for_label }}" class="form-label">{{ form.trip.label }}</label>
+            {# Always render the select. Set value and disable if pre-filled via JS. #}
+            {{ form.trip|add_class:"form-select" }}
+            {% if form.trip.help_text %}<div class="form-text">{{ form.trip.help_text }}</div>{% endif %}
+            {% if form.trip.errors %}<div class="invalid-feedback d-block">{% for error in form.trip.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="{{ form.price_tier.id_for_label }}" class="form-label">{{ form.price_tier.label }}</label>
+            {{ form.price_tier|add_class:"form-select" }}
+            {% if form.price_tier.help_text %}<div class="form-text">{{ form.price_tier.help_text }}</div>{% endif %}
+            {% if form.price_tier.errors %}<div class="invalid-feedback d-block">{% for error in form.price_tier.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">{{ form.selected_add_ons.label }}</label>
+            <div id="id_selected_add_ons_container">
+                {% for checkbox in form.selected_add_ons %}
+                    <div class="form-check form-check-inline">
+                        {{ checkbox.tag }}
+                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if form.selected_add_ons.help_text %}<div class="form-text">{{ form.selected_add_ons.help_text }}</div>{% endif %}
+            {% if form.selected_add_ons.errors %}<div class="invalid-feedback d-block">{% for error in form.selected_add_ons.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        {# room_group field removed #}
+
+        <div class="mb-3">
+            <label for="{{ form.internal_notes.id_for_label }}" class="form-label">{{ form.internal_notes.label }}</label>
+            {{ form.internal_notes|add_class:"form-control" }}
+            {% if form.internal_notes.help_text %}<div class="form-text">{{ form.internal_notes.help_text }}</div>{% endif %}
+            {% if form.internal_notes.errors %}<div class="invalid-feedback d-block">{% for error in form.internal_notes.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="{{ form.booking_status.id_for_label }}" class="form-label">{{ form.booking_status.label }}</label>
+            {{ form.booking_status|add_class:"form-select" }}
+            {% if form.booking_status.help_text %}<div class="form-text">{{ form.booking_status.help_text }}</div>{% endif %}
+            {% if form.booking_status.errors %}<div class="invalid-feedback d-block">{% for error in form.booking_status.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="d-flex justify-content-start mt-3">
+            <button type="submit" class="btn btn-primary me-2">Save Booking</button>
+            <a href="{% url 'booking_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+
+    {# Re-integrated JS for dynamic form fields #}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var $tripSelect = $('#id_trip');
+            var $priceTierSelect = $('#id_price_tier');
+            var $addOnsContainer = $('#id_selected_add_ons_container');
+            var $customerSelect = $('#id_customer');
+            // var $roomGroupSelect = $('#id_room_group'); // Removed
+
+            function updateTripOptions(selectedTripId, isEdit = false) {
+                var customerPk = isEdit ? null : ('{{ pre_filled_customer.pk }}' ? '{{ pre_filled_customer.pk }}' : null);
+
+                if (selectedTripId) {
+                    $.ajax({
+                        url: '{% url "get_trip_options_for_booking" %}',
+                        data: {
+                            'trip_id': selectedTripId,
+                            'booking_id': isEdit ? '{{ booking.pk }}' : '',
+                            'customer_pk': customerPk
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            // Update Price Tiers
+                            $priceTierSelect.empty();
+                            $priceTierSelect.append('<option value="">--- Select a Price Tier ---</option>');
+                            $.each(data.price_tiers, function(key, tier) {
+                                $priceTierSelect.append('<option value="' + tier.id + '">' + tier.name + '</option>');
+                            });
+
+                            // Update Add-Ons (Checkbox Select)
+                            $addOnsContainer.empty();
+                            $.each(data.add_ons, function(key, add_on) {
+                                var div = $('<div class="form-check form-check-inline">');
+                                var checkbox = $('<input type="checkbox" class="form-check-input" name="selected_add_ons" id="id_selected_add_ons_' + add_on.id + '" value="' + add_on.id + '">');
+                                var label = $('<label class="form-check-label" for="id_selected_add_ons_' + add_on.id + '">' + add_on.name + '</label>');
+                                div.append(checkbox).append(label);
+                                $addOnsContainer.append(div);
+                            });
+
+                            // Room Groups (Removed)
+                            // $roomGroupSelect.empty().append('<option value="">---------</option>');
+
+
+                            // If in edit mode, re-select previously chosen tier, add-ons
+                            if (isEdit && '{{ booking.pk }}') {
+                                var currentPriceTier = "{{ booking.price_tier.pk }}";
+                                if (currentPriceTier) {
+                                    $priceTierSelect.val(currentPriceTier);
+                                }
+                                var currentAddOns = [
+                                    {% for add_on in booking.selected_add_ons.all %}
+                                        {{ add_on.add_on.pk }},
+                                    {% endfor %}
+                                ];
+                                currentAddOns.forEach(function(addOnId) {
+                                    $('#id_selected_add_ons_' + addOnId).prop('checked', true);
+                                });
+                                // currentRoomGroup removed
+                            }
+
+                            // Update Customers (only for create mode AND if customer is NOT pre-filled)
+                            if (!isEdit && !customerPk) {
+                                $customerSelect.empty();
+                                $customerSelect.append('<option value="">---------</option>');
+                                $.each(data.customers, function(key, customer) {
+                                    $customerSelect.append('<option value="' + customer.id + '">' + customer.name + '</option>');
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    // Clear options if no trip is selected
+                    $priceTierSelect.empty().append('<option value="">--- Select a Price Tier ---</option>');
+                    $addOnsContainer.empty();
+                    // $roomGroupSelect.empty().append('<option value="">---------</option>'); // Removed
+                    if (!isEdit && !customerPk) {
+                        $customerSelect.empty().append('<option value="">---------</option>');
+                    }
+                }
+            }
+
+            // On trip selection change
+            $tripSelect.change(function() {
+                updateTripOptions($(this).val(), {% if booking %}true{% else %}false{% endif %});
+            });
+
+            // Initial load:
+            var initialTripIdFromContext = "{{ pre_filled_trip.pk }}";
+            var initialTripIdFromSelect = $tripSelect.val();
+
+            var finalInitialTripId = initialTripIdFromContext || initialTripIdFromSelect;
+            
+            if (finalInitialTripId) {
+                updateTripOptions(finalInitialTripId, {% if booking %}true{% else %}false{% endif %});
+            }
+
+            // If customer is pre-filled, disable the customer select
+            {% if pre_filled_customer %}
+                $customerSelect.prop('disabled', true);
+            {% endif %}
+
+            // If trip is pre-filled (from URL parameter), disable the trip select
+            {% if pre_filled_trip %}
+                var tripSelectElement = document.getElementById('id_trip');
+                if (tripSelectElement) {
+                    tripSelectElement.value = "{{ pre_filled_trip.pk }}";
+                    tripSelectElement.disabled = true;
+
+                    if (!document.querySelector('input[name="' + tripSelectElement.name + '"][type="hidden"]')) {
+                        var hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = tripSelectElement.name;
+                        hiddenInput.value = tripSelectElement.value;
+                        tripSelectElement.parentNode.appendChild(hiddenInput);
+                    }
+                }
+            {% endif %}
+        });
+    </script>
+{% endblock content %}

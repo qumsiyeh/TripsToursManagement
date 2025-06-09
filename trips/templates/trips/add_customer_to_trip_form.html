@@ -1,0 +1,78 @@
+<!-- trips/templates/trips/add_customer_to_trip_form.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}{{ title }} - Trips & Tours Management{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">{{ title }}</h1>
+    <h3 class="h5 text-muted mb-4">Trip: "{{ trip.name }}" ({{ trip.start_date|date:"M d, Y" }} - {{ trip.end_date|date:"M d, Y" }})</h3>
+
+    <form method="post">
+        {% csrf_token %}
+        {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Please correct the following errors:</strong>
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% if field.errors %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label for="{{ form.customer.id_for_label }}" class="form-label">{{ form.customer.label }}</label>
+            {{ form.customer|add_class:"form-select" }}
+            {% if form.customer.help_text %}<div class="form-text">{{ form.customer.help_text }}</div>{% endif %}
+            {% if form.customer.errors %}<div class="invalid-feedback d-block">{% for error in form.customer.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="{{ form.price_tier.id_for_label }}" class="form-label">{{ form.price_tier.label }}</label>
+            {{ form.price_tier|add_class:"form-select" }}
+            {% if form.price_tier.help_text %}<div class="form-text">{{ form.price_tier.help_text }}</div>{% endif %}
+            {% if form.price_tier.errors %}<div class="invalid-feedback d-block">{% for error in form.price_tier.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">{{ form.selected_add_ons.label }}</label>
+            <div id="id_selected_add_ons_container">
+                {% for checkbox in form.selected_add_ons %}
+                    <div class="form-check form-check-inline">
+                        {{ checkbox.tag }}
+                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if form.selected_add_ons.help_text %}<div class="form-text">{{ form.selected_add_ons.help_text }}</div>{% endif %}
+            {% if form.selected_add_ons.errors %}<div class="invalid-feedback d-block">{% for error in form.selected_add_ons.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="{{ form.internal_notes.id_for_label }}" class="form-label">{{ form.internal_notes.label }}</label>
+            {{ form.internal_notes|add_class:"form-control" }}
+            {% if form.internal_notes.help_text %}<div class="form-text">{{ form.internal_notes.help_text }}</div>{% endif %}
+            {% if form.internal_notes.errors %}<div class="invalid-feedback d-block">{% for error in form.internal_notes.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        
+        {# Booking status field is hidden/defaulted for this specific form #}
+        {% if form.booking_status %}
+            <input type="hidden" name="{{ form.booking_status.name }}" value="{{ form.booking_status.initial|default:'pending' }}">
+        {% endif %}
+
+        <div class="d-flex justify-content-start mt-3">
+            <button type="submit" class="btn btn-primary me-2">Add Participant</button>
+            <a href="{% url 'trip_detail' trip.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock content %}

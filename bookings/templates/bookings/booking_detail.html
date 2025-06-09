@@ -1,0 +1,198 @@
+<!-- bookings/templates/bookings/booking_detail.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Booking Details - Trips & Tours Management{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Booking Details (ID: {{ booking.pk }})</h1>
+
+    <div class="mb-4 d-flex flex-wrap gap-2">
+        <a href="{% url 'booking_list' %}" class="btn btn-secondary">Back to Bookings</a>
+        <a href="{% url 'booking_update' booking.pk %}" class="btn btn-primary">Edit Booking</a>
+        <a href="{% url 'payment_create' booking.pk %}" class="btn btn-success">Add Payment</a>
+        <a href="{% url 'expense_create' booking.pk %}" class="btn btn-warning">Add Expense</a>
+        <a href="{% url 'booking_delete' booking.pk %}" class="btn btn-danger">Delete Booking</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Booking Overview</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Customer:</strong></div>
+                <div class="col-md-8"><a href="{% url 'customer_detail' booking.customer.pk %}">{{ booking.customer.full_name }}</a></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Trip:</strong></div>
+                <div class="col-md-8"><a href="{% url 'trip_detail' booking.trip.pk %}">{{ booking.trip.name }}</a></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking Date:</strong></div>
+                <div class="col-md-8">{{ booking.booking_date|date:"M d, Y H:i" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Initial Booking Notes:</strong></div>
+                <div class="col-md-8">{{ booking.internal_notes|default:"None"|linebreaksbr }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking Status:</strong></div>
+                <div class="col-md-8"><span class="status-badge status-{{ booking.booking_status }}">{{ booking.get_booking_status_display }}</span></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Payment Status:</strong></div>
+                <div class="col-md-8"><span class="status-badge status-{{ booking.payment_status }}">{{ booking.get_payment_status_display }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h2 class="h5 mb-0">Financial Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Price Tier:</strong></div>
+                <div class="col-md-8">{{ booking.price_tier.name }} (${{ booking.price_tier.price|floatformat:2 }})</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Selected Add-Ons:</strong></div>
+                <div class="col-md-8">
+                    {% if selected_add_ons %}
+                        <ul class="list-unstyled mb-0">
+                            {% for add_on in selected_add_ons %}
+                                <li>{{ add_on.add_on.name }} (${{ add_on.add_on.price|floatformat:2 }})</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span>None</span>
+                    {% endif %}
+                </div>
+            </div>
+            <hr>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Total Price:</strong></div>
+                <div class="col-md-8 fw-bold fs-5">${{ booking.total_price|floatformat:2 }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Amount Paid:</strong></div>
+                <div class="col-md-8 fw-bold fs-5">${{ booking.amount_paid|floatformat:2 }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Outstanding Balance:</strong></div>
+                <div class="col-md-8 fw-bold fs-5 text-danger">${{ booking.outstanding_balance|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h2 class="h5 mb-0">Payments Received</h2>
+        </div>
+        <div class="card-body">
+            {% if booking.payments.all %}
+                <ul class="list-group list-group-flush">
+                    {% for payment in booking.payments.all %}
+                        <li class="list-group-item">
+                            <a href="{% url 'payment_detail' payment.pk %}">
+                                ${{ payment.amount|floatformat:2 }} ({{ payment.payment_method|title }}) on {{ payment.payment_date|date:"M d, Y" }}
+                            </a>
+                            {% if payment.transaction_id %}<br><small class="text-muted">Transaction ID: {{ payment.transaction_id }}</small>{% endif %}
+                            {% if payment.notes %}<br><small class="text-muted">Notes: {{ payment.notes }}</small>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="alert alert-info">No payments recorded for this booking yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h2 class="h5 mb-0">Company Expenses for this Booking</h2>
+        </div>
+        <div class="card-body">
+            {% if booking.expenses.all %}
+                <ul class="list-group list-group-flush">
+                    {% for expense in booking.expenses.all %}
+                        <li class="list-group-item">
+                            <a href="{% url 'expense_detail' expense.pk %}">
+                                ${{ expense.amount|floatformat:2 }} ({{ expense.expense_type.name }}) incurred on {{ expense.expense_date|date:"M d, Y" }} {# <--- CORRECTED LINE #}
+                            </a>
+                            {% if expense.notes %}<br><small class="text-muted">Notes: {{ expense.notes }}</small>{% endif %}
+                            {% if expense.created_by %}<br><small class="text-muted">Recorded by: {{ expense.created_by.username }}</small>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="alert alert-info">No company expenses recorded for this booking yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h2 class="h5 mb-0">Communication Log & Notes</h2>
+        </div>
+        <div class="card-body">
+            {% if notes %}
+                <ul class="list-group list-group-flush mb-3">
+                    {% for note in notes %}
+                        <li class="list-group-item">
+                            <p class="mb-0">
+                                <small class="text-muted">{{ note.timestamp|date:"M d, Y H:i" }}</small>
+                                {% if note.created_by %}
+                                    <small class="text-primary fw-bold">({{ note.created_by.username }})</small>
+                                {% endif %}:
+                            </p>
+                            <p class="mb-0">{{ note.note_text|linebreaksbr }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="alert alert-info">No notes or communication history for this booking yet.</p>
+            {% endif %}
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="h6 mb-0">Add New Note</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'booking_add_note' booking.pk %}">
+                        {% csrf_token %}
+                        {% if booking_note_form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Please correct the following errors:</strong>
+                                <ul class="mb-0">
+                                    {% for field in booking_note_form %}
+                                        {% if field.errors %}
+                                            {% for error in field.errors %}
+                                                <li>{{ field.label }}: {{ error }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if booking_note_form.non_field_errors %}
+                                        {% for error in booking_note_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ booking_note_form.note_text.id_for_label }}" class="form-label">{{ booking_note_form.note_text.label }}</label>
+                            {{ booking_note_form.note_text }}
+                            {% if booking_note_form.note_text.help_text %}<div class="form-text">{{ booking_note_form.note_text.help_text }}</div>{% endif %}
+                            {% if booking_note_form.note_text.errors %}<div class="invalid-feedback d-block">{% for error in booking_note_form.note_text.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-success">Add Note</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

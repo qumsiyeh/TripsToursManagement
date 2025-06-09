@@ -1,0 +1,54 @@
+<!-- bookings/templates/bookings/booking_list.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Booking List - Trips & Tours Management{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Bookings</h1>
+
+    <a href="{% url 'booking_create' %}" class="btn btn-success mb-3">Create New Booking</a>
+
+    {% if bookings %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Trip</th>
+                        <th scope="col">Tier</th>
+                        <th scope="col">Booking Date</th>
+                        <th scope="col">Total Price</th>
+                        <th scope="col">Paid</th>
+                        <th scope="col">Balance</th>
+                        <th scope="col">Booking Status</th>
+                        <th scope="col">Payment Status</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                        <tr class="table-row-status-{{ booking.payment_status }}"> {# Add specific row styling if desired #}
+                            <td>{{ booking.customer.full_name }}</td>
+                            <td>{{ booking.trip.name }}</td>
+                            <td>{{ booking.price_tier.name }}</td>
+                            <td>{{ booking.booking_date|date:"M d, Y" }}</td>
+                            <td>${{ booking.total_price|floatformat:2 }}</td>
+                            <td>${{ booking.amount_paid|floatformat:2 }}</td>
+                            <td>${{ booking.outstanding_balance|floatformat:2 }}</td>
+                            <td><span class="status-badge status-{{ booking.booking_status }}">{{ booking.get_booking_status_display }}</span></td>
+                            <td><span class="status-badge status-{{ booking.payment_status }}">{{ booking.get_payment_status_display }}</span></td>
+                            <td class="action-links">
+                                <a href="{% url 'booking_detail' booking.pk %}" class="btn btn-sm btn-info text-white">View</a>
+                                <a href="{% url 'booking_update' booking.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                                <a href="{% url 'booking_delete' booking.pk %}" class="btn btn-sm btn-danger delete-link">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="alert alert-info">No bookings found. Click "Create New Booking" to get started!</p>
+    {% endif %}
+{% endblock content %}

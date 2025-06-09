@@ -1,0 +1,88 @@
+<!-- payments/templates/payments/payment_detail.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Payment Details - Trips & Tours Management{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Payment Details (ID: {{ payment.pk }})</h1>
+
+    <div class="mb-4">
+        <a href="{% url 'booking_detail' payment.booking.pk %}" class="btn btn-secondary me-2">Back to Booking</a>
+        <a href="{% url 'payment_list' %}" class="btn btn-secondary me-2">Back to All Payments</a>
+        <a href="{% url 'payment_update' payment.pk %}" class="btn btn-primary me-2">Edit Payment</a>
+        <a href="{% url 'payment_delete' payment.pk %}" class="btn btn-danger">Delete Payment</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Payment Overview</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Amount:</strong></div>
+                <div class="col-md-8">${{ payment.amount|floatformat:2 }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Payment Date:</strong></div>
+                <div class="col-md-8">{{ payment.payment_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Payment Method:</strong></div>
+                <div class="col-md-8">{{ payment.get_payment_method_display }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Transaction ID:</strong></div>
+                <div class="col-md-8">{{ payment.transaction_id|default:"N/A" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Notes:</strong></div>
+                <div class="col-md-8">{{ payment.notes|default:"None"|linebreaksbr }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Date Recorded:</strong></div>
+                <div class="col-md-8">{{ payment.date_created|date:"M d, Y H:i" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Last Updated:</strong></div>
+                <div class="col-md-8">{{ payment.last_updated|date:"M d, Y H:i" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h2 class="h5 mb-0">Associated Booking</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking ID:</strong></div>
+                <div class="col-md-8"><a href="{% url 'booking_detail' payment.booking.pk %}">{{ payment.booking.pk }}</a></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Customer:</strong></div>
+                <div class="col-md-8"><a href="{% url 'customer_detail' payment.booking.customer.pk %}">{{ payment.booking.customer.full_name }}</a></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Trip:</strong></div>
+                <div class="col-md-8"><a href="{% url 'trip_detail' payment.booking.trip.pk %}">{{ payment.booking.trip.name }}</a></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking Total Price:</strong></div>
+                <div class="col-md-8 fw-bold">${{ payment.booking.total_price|floatformat:2 }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking Amount Paid:</strong></div>
+                <div class="col-md-8 fw-bold">${{ payment.booking.amount_paid|floatformat:2 }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking Outstanding Balance:</strong></div>
+                <div class="col-md-8 fw-bold text-danger">${{ payment.booking.outstanding_balance|floatformat:2 }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booking Payment Status:</strong></div>
+                <div class="col-md-8"><span class="status-badge status-{{ payment.booking.payment_status }}">{{ payment.booking.get_payment_status_display }}</span></div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

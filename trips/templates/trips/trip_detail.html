@@ -1,0 +1,237 @@
+<!-- trips/templates/trips/trip_detail.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}{{ trip.name }} Details - Trips & Tours Management{% endblock %}
+
+{% block extra_head %}
+    <style>
+        /* Specific styles for inline forms on detail pages */
+        .inline-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Space between form elements */
+            align-items: flex-end;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: var(--bs-gray-200); /* Light gray background */
+            border-radius: 5px;
+        }
+        .inline-form .form-group {
+            margin-bottom: 0;
+            flex-grow: 1; /* Allow fields to grow */
+            min-width: 150px; /* Minimum width for form fields */
+        }
+        .inline-form .form-label {
+            margin-bottom: 2px;
+            font-size: 0.9em;
+        }
+        .inline-form .form-control {
+            width: 100%; /* Ensure inputs fill their container */
+        }
+        .inline-form textarea.form-control {
+            min-width: 180px;
+        }
+        .inline-form .btn {
+            margin-bottom: 0;
+        }
+        .tier-addon-actions {
+            margin-left: 10px;
+            white-space: nowrap;
+        }
+        .tier-addon-actions a {
+            margin-left: 5px;
+            font-size: 0.9em;
+        }
+    </style>
+{% endblock extra_head %}
+
+{% block content %}
+    <h1 class="mb-4">{{ trip.name }} Details</h1>
+
+    <div class="mb-4 d-flex flex-wrap gap-2">
+        <a href="{% url 'trip_list' %}" class="btn btn-secondary">Back to Trips</a>
+        <a href="{% url 'trip_update' trip.pk %}" class="btn btn-primary">Edit Trip</a>
+        <a href="{% url 'trip_delete' trip.pk %}" class="btn btn-danger">Delete Trip</a>
+        <a href="{% url 'trip_participants' trip.pk %}" class="btn btn-info text-white">View Participants</a> {# <--- RE-ADDED #}
+        {# Removed: Add Participant button, as that was part of the problematic linking flow #}
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">Trip Overview</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Destination:</strong></div>
+                <div class="col-md-8">{{ trip.destination|default:"N/A" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Dates:</strong></div>
+                <div class="col-md-8">{{ trip.start_date|date:"M d, Y" }} - {{ trip.end_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Status:</strong></div>
+                <div class="col-md-8"><span class="status-badge status-{{ trip.status }}">{{ trip.get_status_display }}</span></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Max Capacity:</strong></div>
+                <div class="col-md-8">{{ trip.max_capacity|default:"Unlimited" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Min Travelers:</strong></div>
+                <div class="col-md-8">{{ trip.min_travelers|default:"N/A" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Booked Seats:</strong></div>
+                <div class="col-md-8">{{ trip.get_booked_seats }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Available Seats:</strong></div>
+                <div class="col-md-8">{{ trip.get_available_seats|default:"Unlimited" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Date Created:</strong></div>
+                <div class="col-md-8">{{ trip.date_created|date:"M d, Y H:i" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Last Updated:</strong></div>
+                <div class="col-md-8">{{ trip.last_updated|date:"M d, Y H:i" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h2 class="h5 mb-0">Itinerary & Internal Notes</h2>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <strong>Detailed Itinerary:</strong>
+                <p class="mb-0">{{ trip.detailed_itinerary|default:"No detailed itinerary provided."|linebreaksbr }}</p>
+            </div>
+            <div>
+                <strong>Internal Notes:</strong>
+                <p class="mb-0">{{ trip.internal_notes|default:"No internal notes."|linebreaksbr }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h2 class="h5 mb-0">Price Tiers</h2>
+        </div>
+        <div class="card-body">
+            {% if price_tiers %}
+                <ul class="list-group list-group-flush mb-3">
+                    {% for tier in price_tiers %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ tier.name }}:</strong> ${{ tier.price|floatformat:2 }}
+                                {# room_type display removed #}
+                                {% if tier.description %}<br><small class="text-muted">{{ tier.description }}</small>{% endif %}
+                            </div>
+                            <div class="tier-addon-actions flex-shrink-0">
+                                <a href="{% url 'trip_price_tier_update' tier.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{% url 'trip_price_tier_delete' tier.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="alert alert-info">No price tiers defined for this trip yet.</p>
+            {% endif %}
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="h6 mb-0">Add New Price Tier</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'trip_price_tier_create' trip.pk %}" class="inline-form">
+                        {% csrf_token %}
+                        {% for field in tier_form %}
+                            {% if field.name != 'trip' %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {# room_type conditional class removed #}
+                                    {{ field|add_class:"form-control" }}
+                                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                    {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <div class="form-group d-flex align-items-end">
+                            <button type="submit" class="btn btn-success">Add Tier</button>
+                        </div>
+                        {% if tier_form.non_field_errors %}
+                            <div class="alert alert-danger mt-2 w-100" role="alert">
+                                <strong>Errors:</strong>
+                                <ul class="mb-0">
+                                    {% for error in tier_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h2 class="h5 mb-0">Add-Ons</h2>
+        </div>
+        <div class="card-body">
+            {% if add_ons %}
+                <ul class="list-group list-group-flush mb-3">
+                    {% for add_on in add_ons %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ add_on.name }}:</strong> ${{ add_on.price|floatformat:2 }}
+                                {% if add_on.description %}<br><small class="text-muted">{{ add_on.description }}</small>{% endif %}
+                            </div>
+                            <div class="tier-addon-actions flex-shrink-0">
+                                <a href="{% url 'trip_add_on_update' add_on.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{% url 'trip_add_on_delete' add_on.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="alert alert-info">No add-ons defined for this trip yet.</p>
+            {% endif %}
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="h6 mb-0">Add New Add-On</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'trip_add_on_create' trip.pk %}" class="inline-form">
+                        {% csrf_token %}
+                        {% for field in add_on_form %}
+                            {% if field.name != 'trip' %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field|add_class:"form-control" }}
+                                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                    {% if field.errors %}<div class="invalid-feedback d-block">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <div class="form-group d-flex align-items-end">
+                            <button type="submit" class="btn btn-success">Add Add-On</button>
+                        </div>
+                        {% if add_on_form.non_field_errors %}
+                            <div class="alert alert-danger mt-2 w-100" role="alert">
+                                <strong>Errors:</strong>
+                                <ul class="mb-0">
+                                    {% for error in add_on_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

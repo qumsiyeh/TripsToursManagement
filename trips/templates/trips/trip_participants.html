@@ -1,0 +1,79 @@
+<!-- trips/templates/trips/trip_participants.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Participants for {{ trip.name }} - Trips & Tours Management{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Participants for "{{ trip.name }}"</h1>
+    <h3 class="h5 text-muted mb-4">Dates: {{ trip.start_date|date:"M d, Y" }} - {{ trip.end_date|date:"M d, Y" }}</h3>
+
+    <div class="mb-4">
+        <a href="{% url 'trip_detail' trip.pk %}" class="btn btn-secondary">Back to Trip Details</a>
+        {# Removed: Add New Participant button, as that was part of the problematic linking flow #}
+    </div>
+
+    {% if request.GET.error_message %} {# Display messages from redirects #}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ request.GET.error_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+    {% if request.GET.success_message %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ request.GET.success_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    {% if participants %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Price Tier</th>
+                        <th scope="col">Add-Ons</th>
+                        <th scope="col">Total Price</th>
+                        <th scope="col">Paid</th>
+                        <th scope="col">Balance</th>
+                        <th scope="col">Booking Status</th>
+                        <th scope="col">Payment Status</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in participants %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'customer_detail' booking.customer.pk %}">{{ booking.customer.full_name }}</a>
+                            </td>
+                            <td>{{ booking.price_tier.name }}</td>
+                            <td>
+                                {% if booking.selected_add_ons.all %}
+                                    <ul class="list-unstyled mb-0">
+                                        {% for selected_add_on in booking.selected_add_ons.all %}
+                                            <li>{{ selected_add_on.add_on.name }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </td>
+                            <td>${{ booking.total_price|floatformat:2 }}</td>
+                            <td>${{ booking.amount_paid|floatformat:2 }}</td>
+                            <td>${{ booking.outstanding_balance|floatformat:2 }}</td>
+                            <td><span class="status-badge status-{{ booking.booking_status }}">{{ booking.get_booking_status_display }}</span></td>
+                            <td><span class="status-badge status-{{ booking.payment_status }}">{{ booking.get_payment_status_display }}</span></td>
+                            <td class="action-links">
+                                <a href="{% url 'booking_detail' booking.pk %}" class="btn btn-sm btn-info text-white">View Booking</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="alert alert-info">No active participants found for this trip yet. Add bookings to this trip to see them here.</p>
+    {% endif %}
+{% endblock content %}

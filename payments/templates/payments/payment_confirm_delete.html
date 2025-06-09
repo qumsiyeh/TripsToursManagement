@@ -1,0 +1,23 @@
+<!-- payments/templates/payments/payment_confirm_delete.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Confirm Delete Payment{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Confirm Deletion of Payment</h1>
+
+    <div class="alert alert-danger confirmation-box" role="alert">
+        <h4 class="alert-heading">Are you sure?</h4>
+        <p>You are about to delete this payment of <strong>${{ payment.amount|floatformat:2 }}</strong> (ID: {{ payment.pk }}) for Booking ID: {{ payment.booking.pk }}.</p>
+        <p class="mb-0">Deleting this payment will recalculate the outstanding balance and payment status for the associated booking. This action cannot be undone.</p>
+    </div>
+
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        <div class="d-flex justify-content-start">
+            <button type="submit" class="btn btn-danger me-2">Yes, Delete Payment</button>
+            <a href="{% url 'payment_detail' payment.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock content %}

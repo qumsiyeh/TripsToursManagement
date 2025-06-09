@@ -1,0 +1,23 @@
+<!-- expenses/templates/expenses/expense_confirm_delete.html -->
+{% extends "base.html" %}
+{% load app_filters %}
+
+{% block title %}Confirm Delete Expense{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Confirm Deletion of Expense</h1>
+
+    <div class="alert alert-danger confirmation-box" role="alert">
+        <h4 class="alert-heading">Are you sure?</h4>
+        <p>You are about to delete this expense of <strong>${{ expense.amount|floatformat:2 }}</strong> (ID: {{ expense.pk }}) for Booking ID: {{ expense.booking.pk }}.</p>
+        <p class="mb-0">This action will permanently remove the expense record from the system. This action cannot be undone.</p>
+    </div>
+
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        <div class="d-flex justify-content-start">
+            <button type="submit" class="btn btn-danger me-2">Yes, Delete Expense</button>
+            <a href="{% url 'expense_detail' expense.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock content %}
